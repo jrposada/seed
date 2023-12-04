@@ -1,0 +1,10 @@
+# GitHub
+.github
+
+# VS Code
+.vscode
+
+# Config files
+.editorconfig
+.npmrc
+.nvmrc

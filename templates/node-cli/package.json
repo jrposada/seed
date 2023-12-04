@@ -1,0 +1,9 @@
+{
+  "bin": {},
+  "dependencies": {
+    "commander": "^11.0.0"
+  },
+  "description": "Cli tool",
+  "type": "module",
+  "version": "0.1.0"
+}

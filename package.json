@@ -1,0 +1,21 @@
+{
+  "name": "@jrposada/create-seed",
+  "version": "0.1.0",
+  "description": "Scaffolder cli tool.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jrposada/seed.git"
+  },
+  "type": "module",
+  "bin": {
+    "seed": "index.js"
+  },
+  "author": {
+    "email": "jrposada.dev@gmail.com",
+    "name": "Javier Rodriguez Posada"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "inquirer": "^9.2.12"
+  }
+}
