@@ -112,7 +112,12 @@ function copyDirectory({ destinationDirectory, sourceDirectory }) {
 
     fs.readdirSync(sourceDirectory, { withFileTypes: true }).forEach((item) => {
         const itemSourcePath = path.join(sourceDirectory, item.name);
-        const itemDestinationPath = path.join(destinationDirectory, item.name);
+        const itemDestinationPath = path.join(
+            destinationDirectory,
+            /.\.hidden$/.test(item.name)
+                ? `.${item.name.slice(0, item.name.length - 7)}`
+                : item.name
+        );
 
         if (item.isDirectory()) {
             copyDirectory({
