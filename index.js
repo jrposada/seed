@@ -1,17 +1,9 @@
 #! /usr/bin/env node
 
 import inquirer from 'inquirer';
-import {
-    copyFileSync,
-    existsSync,
-    mkdirSync,
-    readFileSync,
-    readdirSync,
-    statSync,
-    writeFileSync,
-} from 'node:fs';
-import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import fs from 'node:fs';
+import path from 'node:path';
+import url from 'node:url';
 
 const regex = /^(?!-)(?!.*-$)[a-zA-Z-]+$/;
 
@@ -28,9 +20,9 @@ async function run() {
         process.exit(1);
     }
 
-    const projectPath = join(process.cwd(), projectName);
+    const projectDirectory = path.join(process.cwd(), projectName);
 
-    if (existsSync(projectPath)) {
+    if (fs.existsSync(projectDirectory)) {
         console.error(`Folder "${projectName}" already exists.`);
         process.exit(1);
     }
@@ -39,8 +31,8 @@ async function run() {
     scaffoldTemplate({
         authorEmail,
         authorName,
+        projectDirectory,
         projectName,
-        projectPath,
         scopeName,
         templateName,
     });
@@ -88,34 +80,61 @@ async function promptConfig() {
 function scaffoldTemplate({
     authorEmail,
     authorName,
+    projectDirectory,
     projectName,
-    projectPath,
     scopeName,
     templateName,
 }) {
-    mkdirSync(projectPath, { recursive: true });
-
-    const templateDir = resolve(
-        fileURLToPath(import.meta.url),
+    const templateDirectory = path.resolve(
+        url.fileURLToPath(import.meta.url),
         `../templates/${templateName}`
     );
 
-    const write = (file, content) => {
-        const targetPath = join(projectPath, file);
-        if (content) {
-            writeFileSync(targetPath, content);
-        } else {
-            copy(join(templateDir, file), targetPath);
-        }
-    };
+    copyDirectory({
+        destinationDirectory: projectDirectory,
+        sourceDirectory: templateDirectory,
+    });
 
-    const files = readdirSync(templateDir);
-    for (const file of files.filter((f) => f !== 'package.json')) {
-        write(file);
+    generatePackageJson({
+        authorEmail,
+        authorName,
+        projectDirectory,
+        projectName,
+        scopeName,
+        templateDirectory,
+    });
+}
+
+function copyDirectory({ destinationDirectory, sourceDirectory }) {
+    if (!fs.existsSync(destinationDirectory)) {
+        fs.mkdirSync(destinationDirectory);
     }
 
+    fs.readdirSync(sourceDirectory, { withFileTypes: true }).forEach((item) => {
+        const itemSourcePath = path.join(sourceDirectory, item.name);
+        const itemDestinationPath = path.join(destinationDirectory, item.name);
+
+        if (item.isDirectory()) {
+            copyDirectory({
+                destinationDirectory: itemDestinationPath,
+                sourceDirectory: itemSourcePath,
+            });
+        } else {
+            fs.copyFileSync(itemSourcePath, itemDestinationPath);
+        }
+    });
+}
+
+function generatePackageJson({
+    authorEmail,
+    authorName,
+    projectDirectory,
+    projectName,
+    scopeName,
+    templateDirectory,
+}) {
     const pkg = JSON.parse(
-        readFileSync(join(templateDir, `package.json`), 'utf-8')
+        fs.readFileSync(path.join(templateDirectory, `package.json`), 'utf-8')
     );
 
     pkg.name = scopeName ? `@${scopeName}/${projectName}` : projectName;
@@ -131,25 +150,10 @@ function scaffoldTemplate({
         };
     }
 
-    write('package.json', JSON.stringify(pkg, null, 2) + '\n');
-}
-
-function copy(src, dest) {
-    const stat = statSync(src);
-    if (stat.isDirectory()) {
-        copyDir(src, dest);
-    } else {
-        copyFileSync(src, dest);
-    }
-}
-
-function copyDir(srcDir, destDir) {
-    mkdirSync(destDir, { recursive: true });
-    for (const file of readdirSync(srcDir)) {
-        const srcFile = resolve(srcDir, file);
-        const destFile = resolve(destDir, file);
-        copy(srcFile, destFile);
-    }
+    fs.writeFileSync(
+        path.join(projectDirectory, `package.json`),
+        JSON.stringify(pkg, null, 2) + '\n'
+    );
 }
 
 run();
