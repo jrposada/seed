@@ -1,6 +1,6 @@
 {
   "name": "@jrposada/create-seed",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Scaffolder cli tool.",
   "repository": {
     "type": "git",
