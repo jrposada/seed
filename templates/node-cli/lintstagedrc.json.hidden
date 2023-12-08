@@ -1,4 +1,4 @@
 {
-  "*(.js$|.ts$|.tsx$)": "eslint",
+  "*.(js|cjs|jsx|ts|tsx)": "eslint",
   "*": "prettier --check"
 }
