@@ -98,8 +98,8 @@ async function promptConfig() {
         {
             type: 'confirm',
             name: 'useHusky',
-            message: '(Optional) Setup Husky?',
-            default: false,
+            message: 'Setup Husky?',
+            default: true,
         },
         {
             type: 'list',
@@ -121,22 +121,32 @@ function scaffoldTemplate({
     templateName,
     useHusky,
 }) {
+    // Copy main template
     const templateDirectory = path.resolve(
         url.fileURLToPath(import.meta.url),
         `../templates/${templateName}`,
     );
-
-    // const ignore = [];
-    // if (!useHusky) {
-    //     ignore.push('husky.hidden');
-    // } else if (!(nodeVersion || npmVersion)) {
-    //     ignore.push('node-checks.sh');
-    // }
-
     copyDirectory({
         destinationDirectory: projectDirectory,
         sourceDirectory: templateDirectory,
     });
+
+    if (useHusky) {
+        const huskyTemplateDirectory = path.resolve(
+            url.fileURLToPath(import.meta.url),
+            `../templates/husky`,
+        );
+        const huskyDestinationDirectory = path.resolve(
+            projectDirectory,
+            `.husky`,
+        );
+        copyDirectory({
+            destinationDirectory: huskyDestinationDirectory,
+            sourceDirectory: huskyTemplateDirectory,
+        });
+
+        generatePreCommit({ nodeVersion, npmVersion, projectDirectory });
+    }
 
     generatePackageJson({
         authorEmail,
@@ -229,6 +239,28 @@ function generatePackageJson({
     fs.writeFileSync(
         path.join(projectDirectory, `package.json`),
         JSON.stringify(pkg, null, 2) + '\n',
+    );
+}
+
+function generatePreCommit({ nodeVersion, npmVersion, projectDirectory }) {
+    const preCommitPath = path.resolve(
+        url.fileURLToPath(import.meta.url),
+        `../templates/husky/pre-commit`,
+    );
+    let preCommit = fs.readFileSync(preCommitPath).toString();
+
+    if (!(nodeVersion || npmVersion)) {
+        preCommit = preCommit.replace('\n<node-checks>\n', '\n');
+    } else {
+        preCommit = preCommit.replace(
+            '\n<node-checks>\n',
+            '\n. "$(dirname "$0")/_/node-checks.sh"\n',
+        );
+    }
+
+    fs.writeFileSync(
+        path.join(projectDirectory, `.husky/pre-commit`),
+        preCommit,
     );
 }
 
