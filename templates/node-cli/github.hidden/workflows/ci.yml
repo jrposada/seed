@@ -1,0 +1,19 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  eslint:
+    name: 'Lint: ESLint'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: jrposada/github-actions/npm-run-script.yml@v1
+        with:
+          node-script: lint

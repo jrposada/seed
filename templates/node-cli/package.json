@@ -1,9 +1,17 @@
 {
+  "name": "<project-name>",
+  "description": "Cli tool",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint ."
+  },
   "bin": {},
   "dependencies": {
-    "commander": "^11.0.0"
+    "commander": "^11.1.0"
   },
-  "description": "Cli tool",
-  "type": "module",
-  "version": "0.1.0"
+  "devDependencies": {
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.1.0"
+  }
 }

@@ -5,15 +5,25 @@ import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
 
-const regex = /^(?!-)(?!.*-$)[a-zA-Z-]+$/;
+const nameRegex = /^(?!-)(?!.*-$)[a-zA-Z-]+$/;
+const versionRegex =
+    /^[<>]?(?:(\^|~)?(0|[1-9]\d*)(\.(0|[1-9]\d*))?(\.(0|[1-9]\d*))?(-(0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*)?(\+[0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*)?)$/;
 
 const templates = {
     'node-cli': 'node-cli',
 };
 
 async function run() {
-    const { projectName, scopeName, templateName, authorEmail, authorName } =
-        await promptConfig();
+    const {
+        authorEmail,
+        authorName,
+        nodeVersion,
+        npmVersion,
+        projectName,
+        scopeName,
+        templateName,
+        useHusky,
+    } = await promptConfig();
 
     if (!templateName) {
         console.error(`Template "${templateName}" not found.`);
@@ -31,10 +41,13 @@ async function run() {
     scaffoldTemplate({
         authorEmail,
         authorName,
+        nodeVersion,
+        npmVersion,
         projectDirectory,
         projectName,
         scopeName,
         templateName,
+        useHusky,
     });
 }
 
@@ -47,22 +60,16 @@ async function promptConfig() {
             validate: (input) =>
                 !input
                     ? 'Project name is required'
-                    : !regex.test(input)
-                    ? 'Invalid project name'
-                    : true,
+                    : !nameRegex.test(input)
+                      ? 'Invalid project name'
+                      : true,
         },
         {
             type: 'input',
             name: 'scopeName',
             message: '(Optional) Enter the project scope name:',
             validate: (input) =>
-                input && !regex.test(input) ? 'Invalid scope name' : true,
-        },
-        {
-            type: 'list',
-            name: 'templateName',
-            message: 'Choose a project template:',
-            choices: Object.keys(templates),
+                input && !nameRegex.test(input) ? 'Invalid scope name' : true,
         },
         {
             type: 'input',
@@ -74,21 +81,57 @@ async function promptConfig() {
             name: 'authorName',
             message: '(Optional) Enter the author name:',
         },
+        {
+            type: 'input',
+            name: 'nodeVersion',
+            message: '(Optional) Node version:',
+            validate: (input) =>
+                input && !versionRegex.test(input) ? 'Invalid version' : true,
+        },
+        {
+            type: 'input',
+            name: 'npmVersion',
+            message: '(Optional) NPM version:',
+            validate: (input) =>
+                input && !versionRegex.test(input) ? 'Invalid version' : true,
+        },
+        {
+            type: 'confirm',
+            name: 'useHusky',
+            message: '(Optional) Setup Husky?',
+            default: false,
+        },
+        {
+            type: 'list',
+            name: 'templateName',
+            message: 'Choose a project template:',
+            choices: Object.keys(templates),
+        },
     ]);
 }
 
 function scaffoldTemplate({
     authorEmail,
     authorName,
+    nodeVersion,
+    npmVersion,
     projectDirectory,
     projectName,
     scopeName,
     templateName,
+    useHusky,
 }) {
     const templateDirectory = path.resolve(
         url.fileURLToPath(import.meta.url),
-        `../templates/${templateName}`
+        `../templates/${templateName}`,
     );
+
+    // const ignore = [];
+    // if (!useHusky) {
+    //     ignore.push('husky.hidden');
+    // } else if (!(nodeVersion || npmVersion)) {
+    //     ignore.push('node-checks.sh');
+    // }
 
     copyDirectory({
         destinationDirectory: projectDirectory,
@@ -98,10 +141,13 @@ function scaffoldTemplate({
     generatePackageJson({
         authorEmail,
         authorName,
+        nodeVersion,
+        npmVersion,
         projectDirectory,
         projectName,
         scopeName,
         templateDirectory,
+        useHusky,
     });
 }
 
@@ -116,7 +162,7 @@ function copyDirectory({ destinationDirectory, sourceDirectory }) {
             destinationDirectory,
             /.\.hidden$/.test(item.name)
                 ? `.${item.name.slice(0, item.name.length - 7)}`
-                : item.name
+                : item.name,
         );
 
         if (item.isDirectory()) {
@@ -133,13 +179,16 @@ function copyDirectory({ destinationDirectory, sourceDirectory }) {
 function generatePackageJson({
     authorEmail,
     authorName,
+    nodeVersion,
+    npmVersion,
     projectDirectory,
     projectName,
     scopeName,
     templateDirectory,
+    useHusky,
 }) {
     const pkg = JSON.parse(
-        fs.readFileSync(path.join(templateDirectory, `package.json`), 'utf-8')
+        fs.readFileSync(path.join(templateDirectory, `package.json`), 'utf-8'),
     );
 
     pkg.name = scopeName ? `@${scopeName}/${projectName}` : projectName;
@@ -148,16 +197,38 @@ function generatePackageJson({
         pkg.bin[projectName] = 'index.js';
     }
 
-    if (authorName || authorEmail) {
-        pkg.repository = {
-            email: authorEmail,
-            name: authorName,
-        };
+    if (authorEmail || authorName) {
+        pkg.repository = {};
+
+        if (authorEmail) {
+            pkg.repository.email = authorEmail;
+        }
+
+        if (authorName) {
+            pkg.repository.name = authorName;
+        }
+    }
+
+    if (nodeVersion || npmVersion) {
+        pkg.engines = {};
+
+        if (nodeVersion) {
+            pkg.engines.node = nodeVersion;
+        }
+
+        if (npmVersion) {
+            pkg.engines.npm = npmVersion;
+        }
+    }
+
+    if (useHusky) {
+        pkg.devDependencies.husky = '^8.0.3';
+        pkg.scripts.postinstall = 'husky install';
     }
 
     fs.writeFileSync(
         path.join(projectDirectory, `package.json`),
-        JSON.stringify(pkg, null, 2) + '\n'
+        JSON.stringify(pkg, null, 2) + '\n',
     );
 }
 
