@@ -254,7 +254,7 @@ function generatePreCommit({ nodeVersion, npmVersion, projectDirectory }) {
     } else {
         preCommit = preCommit.replace(
             '\n<node-checks>\n',
-            '\n. "$(dirname "$0")/_/node-checks.sh"\n',
+            '\n. "$(dirname "$0")/node-checks.sh"\n',
         );
     }
 
