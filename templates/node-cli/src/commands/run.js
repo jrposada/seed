@@ -1,5 +1,5 @@
 const action = (options) => {
-    console.log('Hello World!');
+    console.log('Hello World!', options);
 };
 
 const command = {
